@@ -89,7 +89,7 @@
 >-- the subset method below followed on from the same logic of equals method, except it was easier to >-- implement. the logic would be simple, we recurse through the tails of list a, and each time we use
 >-- the elem function to check whether the head of list a is in list b. again i started thinking
 >-- about patterns, logic dictated that an empty list would be a subset of any list, hence i added 
->-- these patterns. after some thinking i then realized that we should also check of list b is a 
+>-- these patterns. after some thinking i then realized that we should also check if list b is a 
 >-- subset of list a. again, the power haskell was made evident, when i just OR'd the original code
 >-- with similar code but applied in other direction, and it worked great after testing.  
 
@@ -105,10 +105,17 @@
 >select :: (a -> Bool) -> Set a -> Set a
 >select vs (Set xs) = (Set  [x | x <- xs, (vs x)])
 
+>-- the perms method below took quite some thinking before i actually implemented it. i had tried
+>-- to do it using recursion but got stuck on that implementation. 
 
 >perms :: (Eq a) => [a] -> [[a]]
 >perms [] = [[]]
 >perms xs = [x:ys | x <- xs, ys <- perms (delete x xs)]
+
+>-- the asc was more straightforward and easy to figure out. i decided to recurse through the entire >-- list checking if each element is more than the next one, if the list is ascending, then the >--recursion would end up with an empty list, and the pattern would be caught triggering the true case
+>-- otherwise if any element is larger than its successor the recursion returns False. on slight issue
+>-- was evident was that at the last element, there should be no comparison, i easily fixed that by
+>-- adding an additional condition that the tail is not empty.
 
 >asc :: (Eq a) => (Ord a) => [a] -> Bool
 >asc [] = True
@@ -126,20 +133,34 @@
 
 >data Path a b = Path [(a,b,a)] | Nothing deriving (Eq, Ord, Read, Show)
 
+
+>-- a note about part 3. i believe this was the most challenging part, i managed to do most of the 
+>-- functions, however I did not take into account graphs that contain cycles, so my functions do not >-- work for cycles.
+
 >makeGraph :: (Eq a) => (Eq b) => (Ord a) => ([a], [(a,b,a)]) -> Graph a b
 >makeGraph (q,(x:xs)) | (not $ (fst3 x) `elem` q) || (not $ (thrd3 x) `elem` q) || ((containsU (x:xs) (x:xs) ) == True)  || ((containsU q q ) == True)  = error "invalid data format"
 >                     |  xs /= [] = (Graph q (x:s))
 >                     | otherwise = (Graph q (x:xs))   
 >              where (Graph d s) = makeGraph (q,xs)   
 
+>-- helper function that returns the first element in a tuple of three
+
 >fst3 :: (a, b, c) -> a
 >fst3 (x, _, _) = x
+
+
+>-- helper function that returns the second element in a tuple of three
 
 >snd3 :: (a, b, c) -> b
 >snd3 (_,x, _) = x
 
+
+>-- helper function that returns the third element in a tuple of three
+
 >thrd3 :: (a, b, c) -> c
 >thrd3 (_, _,x) = x
+
+
 
 >contains :: (Eq a) => a -> [a] -> Bool
 >contains a [] = False
@@ -179,14 +200,14 @@
 
 
 >isConnected :: (Eq a) => Graph a b -> a -> Bool
->isConnected (Graph v xs) h | (contains h v) && (sumGraph (Graph v xs) v) == length xs && (length tr) == 0 = True
+>isConnected (Graph v xs) h | (h `elem` v) && (sumGraph (Graph v xs) v) == length xs && (length tr) == 0 = True
 >                          | otherwise = False
 >                          where (Set tr) = (predecessors (Graph v xs) h) 
 
 
 >findPath :: (Eq a) =>  Graph a b -> a -> a -> Maybe (Path a b)
 >findPath (Graph [] xs) y z = Prelude.Nothing
->findPath (Graph v xs) y z | wx /= [] && (contains z wx) == True = Just (Path [(y, findLabel (Graph v xs) y z ,z)])
+>findPath (Graph v xs) y z | wx /= [] && (z `elem` wx) == True = Just (Path [(y, findLabel (Graph v xs) y z ,z)])
 >                          | wx == [] = Prelude.Nothing
 >                          | otherwise = pathUnion (Path el) ed
 >                          where (Set wx) = successors (Graph v xs) y 
@@ -203,6 +224,16 @@
 >pathUnion (Path y) (Path []) = Just (Path y)
 >pathUnion (Path []) (Path x) = Just (Path x)
 >pathUnion (Path y) (Path x) = Just (Path (y++x))
+
+>findPathLabel :: (Eq a) => Graph a b -> a -> a -> Maybe [b]
+>findPathLabel (Graph [] xs) y z = Prelude.Nothing
+>findPathLabel (Graph v xs) y z | wx /= [] && (z `elem` wx) == True = Just ([findLabel (Graph v xs) y z ])
+>                          | wx == [] = Prelude.Nothing
+>                          | otherwise = Just(el ++ ed)
+>                          where (Set wx) = successors (Graph v xs) y 
+>                                (Just ed) = findPathLabel (Graph v xs) (head wx) z  
+>                                el = [findLabel (Graph v xs) y (head wx)]
+
    
  
     
