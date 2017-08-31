@@ -220,13 +220,13 @@
 >-- succesors is applied to an element in the list of nodes. again, as explained before, where function made it easy to access
 >-- the set elements and to assign elements.   
 
->sumGraph (Graph v xs) ys x | ys /= [] && (length ws) > 1 =   er + (sumGraph (Graph v xs) [wt] x) + (sumGraph (Graph v xs) (tail ws) x)
->                           | (length (ws)) == 1 = (sumGraph (Graph v xs) [wt] er)
+>sumGraph (Graph v xs) ys x | ys /= [] && (length ws) > 1 =  (sumGraph (Graph v xs) [wt] er) + (sumGraph (Graph v xs) (tail ws) er) + 0
+>                           | (length (ws)) == 1 = (sumGraph (Graph v xs) [wt] x)
 >                           | otherwise = x    
 >                           where (Set ws) = (successors (Graph v xs) q) 
 >                                 q = head ys
 >                                 wt | ws /= [] = head ws
->                                 er = x+(length ws)
+>                                 er = (length ws)
 
 
 >--outlier (Graph v xs) ys  | ys /= [] && ws /= [] =  (length ws) && (outlier (Graph v xs) wt) 
