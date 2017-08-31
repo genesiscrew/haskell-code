@@ -72,10 +72,10 @@
 >                                    (Set (r:rs)) = makeSet (x:xs)
 >                                    (Set (q:qs)) = makeSet (y:xs)
 
->-- for the equals method below i wanted to try a new techniques since most of my functions rely on
+>-- for the equalsU method below i wanted to try a new techniques since most of my functions rely on
 >-- recursion. you can see that the implementation is a one liner and works for both ordered and >--unordered sets. for this function i used the any function which requires two inputs, a >--function to run on an element, and a list, and it returns only those elements that satisfy the >--requirements of the function, which in this case was == to first element of list a. hence it can >--work with ordered and >--unordered sets. since the output of this function is boolean, i assumed >--that we can AND the output of the any function with a recursion on the tail of x and the other >--list. i also had beforehand three patterns which made sense to me, which where that if one set is >--empty, then it should return false, and if both are empty then it should return true. the problem >--was that after checking for an element and running the recursion on the tail of list a while >--keeping list b in tact meant that the patterns returned false. after some thinking i realised that
 >-- the sets do not have duplicates so if we find a match in set b we could just remove that element
->-- and if both sets are equals the recursion should end with two empty lists, hence satisfying one >--of the patterns. this showed my the elegance of haskell where you can use patterns, logic and math 
+>-- and if both sets are equals the recursion should end with two empty lists, hence satisfying one >--of the patterns. this showed me the elegance of haskell where you can use patterns, logic and math 
 >-- to arrive at nice solutions.
 
 
@@ -172,35 +172,76 @@
 >containsU (y:ys) (l:ls) | ls /= [] && (contains y ls) == True = True
 >            | otherwise = containsU ys ls
 
+>-- the function predecessors took something thinking. after some analysis, i realized that
+>-- the output of the function is just a subset of nodes of on the inputs which is a set of of
+>-- all nodes in the graph. hence i decided to use list comprehension to run through all the
+>-- items in the input node set, and i need a way to check if each node is a predecessor of the given >- node, so i needed another function that returns a boolean, and made predFind, if it returned true
+>-- then the list comprehension filter would allow it to be added 
+
 >predecessors :: (Eq a) =>  Graph a b -> a -> Set a 
 >predecessors (Graph v xs) y = (Set  [x | x <- v, (predFind xs x y) == True ])
 
+
+>-- regarding the predFind helper function below developing predFind was key to 
+>-- make my idea to work. it would take a list of edges and simply
+>-- check if the last element in edge is equal to our given node and the first element in edge
+>-- is equal to a certain value, which represents all the other elements in our graph. since predfind 
+>-- is run in every iteration of the list comprehension we are getting all values of x and comparing 
+>-- them to our required node. again i am using recursion as the most preferred way. this is mostly 
+>-- because i am still uncomfortable with how maps and folds work. as you can see, all my solutions
+>-- are highly dependant on recursion which i find convenient. finally, i am again using patterns
+>-- to make the solution elegant, if the list of edges is empty then false is returned
 
 >predFind :: (Eq a) => (Eq c) => [(a,b,c)] -> a -> c -> Bool
 >predFind [] f y = False
 >predFind (x:xs) f y | (fst3 x) == f && (thrd3 x) == y = True
 >                  | otherwise = predFind xs f y
 
+>--regarding the successor function below, after getting predecessor to work, successors was straightforward to implement as it works
+>-- exactly the same way but the direction is just reversed.
 
 >successors :: (Eq a) =>  Graph a b -> a -> Set a 
 >successors  (Graph v xs) y = (Set  [x | x <- v, (sucFind xs x y) == True ])
 
+>--regarding the sucFind helper function below, again, it is a replica of predfind except the nodes are reversed.  
 
 >sucFind :: (Eq a) => (Eq c) => [(a,b,c)] -> c -> a -> Bool
 >sucFind [] f y = False
 >sucFind (x:xs) f y | (fst3 x) == y && (thrd3 x) == f = True
 >                   | otherwise = sucFind xs f y
 
+>--sumGraph function, which is a helper function to isConnected is quite interesting, in the beggining it was supposed to actually be the actual isConnected
+>--function. the idea i had before coding was that i was going to use the successors function to find out the succesors of the
+>-- starting node, and then I wanted to recurse through each successor and run the same function on each one. i had difficulty 
+>-- implementing this idea because at that stage i still hadnt formulated a plan to address the issue. i then analysed the problem
+>-- on a piece of paper, and realized that given a list of nodes and edges, if the graph is connected then the length of given list >-- of edges should be equal to the sum of successors for each node in the graph. after this important finding, i needed to first
+>-- calculate the number of successors for each node in graph. hence sumGraph was made. the idea was to pass to sumGraph a graph 
+>-- and a list of nodes, and to incrementally sum the length of the result of successors function. on each recursion of sumGraph
+>-- succesors is applied to an element in the list of nodes. again, as explained before, where function made it easy to access
+>-- the set elements and to assign elements.   
 
->sumGraph (Graph v xs) ys  | ys /= [] =  (length ws) + (sumGraph (Graph v xs) wt) 
->                          | otherwise = 0    
+>sumGraph (Graph v xs) ys x | ys /= [] && (length ws) > 1 =   er + (sumGraph (Graph v xs) [wt] x) + (sumGraph (Graph v xs) (tail ws) x)
+>                           | (length (ws)) == 1 = (sumGraph (Graph v xs) [wt] er)
+>                           | otherwise = x    
 >                           where (Set ws) = (successors (Graph v xs) q) 
 >                                 q = head ys
->                                 wt = tail ys
+>                                 wt | ws /= [] = head ws
+>                                 er = x+(length ws)
 
 
->isConnected :: (Eq a) => Graph a b -> a -> Bool
->isConnected (Graph v xs) h | (h `elem` v) && (sumGraph (Graph v xs) v) == length xs && (length tr) == 0 = True
+>--outlier (Graph v xs) ys  | ys /= [] && ws /= [] =  (length ws) && (outlier (Graph v xs) wt) 
+>--                          | otherwise = 0    
+>--                           where (Set ws) = (successors (Graph v xs) q) 
+>--                                 q = head ys
+>--                                 (Set wv) = (predecessors (Graph v xs) q)
+>--                                 wt = tail ys
+
+>-- the isConnected function below is highly dependant on the sumGraph function. given the output of sumGraph,
+>-- checking whether the graph is connected required only to check whether the sum of successors is equal to the
+>-- length of edges list in the graph.  
+
+>isConnected :: (Ord a) => (Eq a) => Graph a b -> a -> Bool
+>isConnected (Graph v xs) h | (h `elem` v) && (sumGraph (Graph (sort $ v) xs) [h] 0) == ((length xs)) && (length tr) == 0 = True
 >                          | otherwise = False
 >                          where (Set tr) = (predecessors (Graph v xs) h) 
 
